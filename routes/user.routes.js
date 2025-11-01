@@ -71,7 +71,12 @@ router.post('/login',async (req, res) => {
 
     const token = await createUserToken({id: user.id});
     
-    return res.json({ token })
+    return res.json({ token, user: {
+        id: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email
+    } })
 
 })
 
