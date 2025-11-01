@@ -6,6 +6,7 @@ export async function getUserByEmail(email) {
   const [existingUser] = await db
     .select({
       id: userTable.id,
+      email: userTable.email,
       firstname: userTable.firstname,
       lastname: userTable.lastname,
       password: userTable.password,
