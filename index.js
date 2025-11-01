@@ -1,11 +1,20 @@
 import express from 'express';
 import 'dotenv/config';
+import cors from 'cors';
 import userRouter from "./routes/user.routes.js"
 import urlRouter from './routes/url.routes.js'
 import { authenticationMiddleware } from './middlewares/auth.middleware.js';
 const app = express();
 
 const PORT = 3000 ?? process.env.PORT;
+
+// CORS configuration - must be before other middleware
+app.use(cors({
+  origin: '*', // Allow all origins (for production, specify your frontend URL)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 app.use(authenticationMiddleware);
