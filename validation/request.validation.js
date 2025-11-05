@@ -16,3 +16,8 @@ export const shortenPostRequestBodySchema = z.object({
     url: z.string().url(),
     code: z.string().optional()
 })
+
+export const updateUrlRequestBodySchema = z.object({
+    url: z.url().optional(),
+    code: z.string().optional()
+})
