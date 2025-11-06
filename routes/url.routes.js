@@ -205,10 +205,25 @@ router.get("/:shortCode", async (req, res) => {
     return res.status(404).json({ error: "invalid url" });
   }
 
+  //extract the exact client isp ip
+  const getClientIP = (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if(forwardedFor){
+      const ips = forwardedFor.split(',').map(ip => ip.trim());
+      return ips[0];
+    }
+
+    if(req.ip){
+      return req.ip;
+    }
+
+    return req.connection?.remoteAddress || 'unknown';
+  };
+
   //track the click
   const clickData = {
     urlId: result.id,
-    ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+    ipAddress: getClientIP(req),
     userAgent: req.headers['user-agent'] || 'unknown',
     referrer: req.headers['referer'] || req.headers['referrer'] || null,
     country: null,

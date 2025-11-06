@@ -8,6 +8,8 @@ const app = express();
 
 const PORT = 3000 ?? process.env.PORT;
 
+app.set('trust proxy', true);
+
 // CORS configuration - must be before other middleware
 app.use(cors({
   origin: '*', // Allow all origins (for production, specify your frontend URL)
