@@ -6,6 +6,7 @@ import { nanoid, url } from "zod";
 import db from "../db/index.js";
 import { urlsTable } from "../models/url.model.js";
 import { ensureAuthenticated } from "../middlewares/auth.middleware.js";
+import { clicksTable } from "../models/clicks.model.js";
 
 const router = express.Router();
 
@@ -188,9 +189,13 @@ router.delete('/urls/:id', ensureAuthenticated, async (req, res) => {
 })
 
 router.get("/:shortCode", async (req, res) => {
-  const code = req.params.shortCode;
+
+  // add the click tracking logic 
+    try {
+      const code = req.params.shortCode;
   const [result] = await db
     .select({
+      id: urlsTable.id,
       targetURL: urlsTable.targetURL,
     })
     .from(urlsTable)
@@ -200,7 +205,24 @@ router.get("/:shortCode", async (req, res) => {
     return res.status(404).json({ error: "invalid url" });
   }
 
+  //track the click
+  const clickData = {
+    urlId: result.id,
+    ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+    userAgent: req.headers['user-agent'] || 'unknown',
+    referrer: req.headers['referer'] || req.headers['referrer'] || null,
+    country: null,
+  }
+
+  db.insert(clicksTable)
+    .values(clickData)
+    .catch(err => console.error('Error tracking click', err));
+
   return res.redirect(result.targetURL);
+    } catch (error) {
+      console.error('Error in redirect:', error);
+    return res.status(500).json({ error: "Server error" });
+    }
 });
 
 
