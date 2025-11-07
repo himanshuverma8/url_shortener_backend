@@ -78,7 +78,7 @@ export const getGeoData = async (ipAddress) => {
             const { getName } = countryList;
             const geoData = {
                 country: data.country || null,
-                coutryName: getName(data.country) || null,
+                countryName: getName(data.country) || null,
                 region: data.region || null,
                 city: data.city || null,
                 postalCode: data.postal || null,
