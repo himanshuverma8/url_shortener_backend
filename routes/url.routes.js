@@ -7,6 +7,7 @@ import db from "../db/index.js";
 import { urlsTable } from "../models/url.model.js";
 import { ensureAuthenticated } from "../middlewares/auth.middleware.js";
 import { clicksTable } from "../models/clicks.model.js";
+import { getGeoData, getVisitorId, parseUserAgent } from "../utils/analytics.js";
 
 const router = express.Router();
 
@@ -205,6 +206,10 @@ router.get("/:shortCode", async (req, res) => {
     return res.status(404).json({ error: "invalid url" });
   }
 
+  //get visitor if from cookie or generate new one
+
+  const visitorId = getVisitorId(req, res);
+
   //extract the exact client isp ip
   const getClientIP = (req) => {
     const forwardedFor = req.headers['x-forwarded-for'];
@@ -220,14 +225,38 @@ router.get("/:shortCode", async (req, res) => {
     return req.connection?.remoteAddress || 'unknown';
   };
 
-  //track the click
+  const clientIP = getClientIP(req);
+
+  //parse the user agent
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const { device, browser, os} = parseUserAgent(userAgent);
+
+  //get geolocation cached data from db or from ipinfo.io api
+
+  const geoData = await getGeoData(clientIP);
+
+  //track click (async why so that redirect occurs instantly and the insertion logic is being exceuted simuntaneosly)
   const clickData = {
     urlId: result.id,
-    ipAddress: getClientIP(req),
-    userAgent: req.headers['user-agent'] || 'unknown',
+    visitorId: visitorId,
+    ipAddress: clientIP,
+    userAgent: userAgent,
     referrer: req.headers['referer'] || req.headers['referrer'] || null,
-    country: null,
+    //geolocation data
+    country: geoData?.country || null,
+    countryName: geoData?.countryName || null,
+    region: geoData?.countryName ||  null,
+    city: geoData?.city || null,
+    postalCode: geoData?.postalCode || null,
+    timezone: geoData?.timezone || null,
+    location: geoData?.location || null,
+    org: geoData?.org || null,
+    //device/browser data
+    device: device,
+    browser: browser,
+    os: os
   }
+
 
   db.insert(clicksTable)
     .values(clickData)

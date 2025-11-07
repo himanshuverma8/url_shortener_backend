@@ -1,6 +1,7 @@
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import userRouter from "./routes/user.routes.js"
 import urlRouter from './routes/url.routes.js'
 import { authenticationMiddleware } from './middlewares/auth.middleware.js';
@@ -19,6 +20,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(authenticationMiddleware);
 
 app.get('/', (req, res) => {
