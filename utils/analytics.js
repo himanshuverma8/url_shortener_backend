@@ -3,7 +3,8 @@ import db from "../db/index.js";
 import { geoCacheTable } from "../models/geoCache.model.js";
 import { eq, and, sql } from "drizzle-orm";
 import axios from "axios";
-import { getCountryName } from 'country-list';
+import countryList from 'country-list';
+
 
 //generate or get the visitor ID from the cookie
 export const getVisitorId = (req, res) => {
@@ -74,10 +75,10 @@ export const getGeoData = async (ipAddress) => {
             const response = await axios.get(apiUrl);
             const data = response.data;
             //
-
+            const { getName } = countryList;
             const geoData = {
                 country: data.country || null,
-                coutryName: getCountryName(data.country) || null,
+                coutryName: getName(data.country) || null,
                 region: data.region || null,
                 city: data.city || null,
                 postalCode: data.postal || null,
