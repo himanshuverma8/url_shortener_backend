@@ -18,7 +18,7 @@ export const clicksTable = pgTable('clicks', {
     org: text('org'), //ISP organization
     //Device/Browser data
     device: varchar('device', {length: 50}), //mobile, desktop, tablet
-    browser: varchar('device', {length: 50}), //chrome, firefox, safari
+    browser: varchar('browser', {length: 50}), //chrome, firefox, safari
     os: varchar('os', {length: 50}), //Windows, macOS, iOS, Android
     timestamp: timestamp('timestamp').defaultNow().notNull()
 })

@@ -7,7 +7,7 @@ import axios from "axios";
 //generate or get the visitor ID from the cookie
 export const getVisitorId = (req, res) => {
   const cookieName = "visitor_id";
-  let visitorId = req.cookies?.[visitor_id];
+  let visitorId = req.cookies?.[cookieName];
 
   //if no cookie exists that means user may be first time visitor
   //generate a new cookie for the user
@@ -32,9 +32,9 @@ export const getGeoData = async (ipAddress) => {
     !ipAddress ||
     ipAddress === "unknown" ||
     ipAddress === "127.0.0.1" ||
-    ipAddress.startWith("192.168.") ||
-    ipAddress.startWith('10.') ||
-    ipAddress.startWith('172.')
+    ipAddress.startsWith("192.168.") ||
+    ipAddress.startsWith('10.') ||
+    ipAddress.startsWith('172.')
   ){
     return null;
   }

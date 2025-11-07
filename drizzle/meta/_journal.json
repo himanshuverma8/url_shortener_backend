@@ -22,6 +22,13 @@
       "when": 1762545437615,
       "tag": "0002_icy_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762551795451,
+      "tag": "0003_fresh_stick",
+      "breakpoints": true
     }
   ]
 }
