@@ -245,7 +245,7 @@ router.get("/:shortCode", async (req, res) => {
     //geolocation data
     country: geoData?.country || null,
     countryName: geoData?.countryName || null,
-    region: geoData?.countryName ||  null,
+    region: geoData?.region ||  null,
     city: geoData?.city || null,
     postalCode: geoData?.postalCode || null,
     timezone: geoData?.timezone || null,
