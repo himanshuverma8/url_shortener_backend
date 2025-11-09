@@ -1,7 +1,7 @@
 import express, { urlencoded } from "express";
 import { shortenPostRequestBodySchema, updateUrlRequestBodySchema } from "../validation/request.validation.js";
 import { userTable } from "../models/user.model.js";
-import { eq, and, One } from "drizzle-orm";
+import { eq, and, One, desc } from "drizzle-orm";
 import { nanoid, url } from "zod";
 import db from "../db/index.js";
 import { urlsTable } from "../models/url.model.js";
@@ -57,6 +57,172 @@ router.post("/shorten", ensureAuthenticated, async (req, res) => {
     targetURL: result.targetURL,
   });
 });
+
+//get comprehensive analytics
+router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
+  try {
+    const urlId = req.params.id;
+
+    //verify ownership
+    const [url] = await db
+      .select({id: urlsTable.id, userId: userTable.id})
+      .from(urlsTable)
+      .where(
+        and(
+          eq(urlsTable.id, urlId), //select the correct url using url id from the db
+          eq(urlsTable.userId, req.user.id) //verify if this url is owned by the logged in user
+        )
+      )
+      
+      if(!url){
+        return res.status(404).json({error: 'URL not found'});
+      }
+
+      //Total clicks
+      const [totalClicks] = await db
+        .select({count: sql`count(*)`})
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId));
+
+      //Unique visitors (using visitorId)
+      const [uniqueVisitors] = await db
+        .select({count: sql`count(DISTINCT ${clicksTable.visitorId})`}) 
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId));
+      
+      //clicks by date (time series)
+      const clicksByDate = await db
+        .select({
+          date: sql`DATE(${clicksTable.timestamp})`,
+          clicks: sql`count(*)`,
+          uniqueVisitors: sql`count(DISTINCT ${clicksTable.visitorId})`
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(sql`DATE(${clicksTable.timestamp})`)
+        .orderBy(asc(sql`DATE(${clicksTable.timestamp})`));
+
+      //clicks by country
+      const clicksByCountry = await db
+        .select({
+          country: clicksTable.country,
+          countryName: clicksTable.countryName,
+          clicks: sql`count(*)`,
+          uniqueVisitors: sql`count(${clicksTable.visitorId})`
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(clicksTable.country, clicksTable.countryName)
+        .orderBy(sql`count(*)`);
+
+      //clicks by region
+
+      const clickByRegion = await db
+        .select({
+          country: clicksTable.country,
+          clicks: sql`count(*)`,
+          region: clicksTable.region
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(clicksTable.region)
+        .orderBy(desc(sql`count(*)`))
+        .limit(20);
+
+      //clicks by city
+      //no field currently to track the exact city
+      //clicks by device
+      const clickByDevice = await db
+        .select({
+          device: clicksTable.device,
+          clicks: sql`count(*)`
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(sql`${clicksTable.device}`)
+        .orderBy(desc(sql`count(*)`));
+
+      //clicks by browser
+      const clicksByBrowser = await db
+        .select({
+          browser: clicksTable.browser,
+          count: sql`count(*)`
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(sql`${clicksTable.browser}`)
+        .orderBy(desc(sql`count(*)`));
+        
+      //clicks by os
+      const clicksByOS = await db
+        .select({
+          os: clicksTable.os,
+          count: sql`count(*)`
+        })
+        .from(clicksTable)
+        .where(eq(clicksTable.urlId, urlId))
+        .groupBy(clicksTable.os)
+        .orderBy(desc(sql``))
+
+          // Clicks by referrer
+    const clicksByReferrer = await db
+    .select({
+      referrer: clicksTable.referrer,
+      clicks: sql`count(*)`
+    })
+    .from(clicksTable)
+    .where(eq(clicksTable.urlId, urlId))
+    .groupBy(clicksTable.referrer)
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);  
+
+    return res.status(200).json({
+      totalClicks: Number(totalClicks?.count || 0),
+      uniqueVisitors: Number(uniqueVisitors?.count || 0),
+      clicksByDate: clicksByDate.map(item => ({
+        date: item.date,
+        clicks: Number(item.clicks),
+        uniqueVisitors: Number(item.uniqueVisitors)
+      })),
+      clicksByCountry: clicksByCountry.map(item => ({
+        country: item.country || 'Unknown',
+        countryName: item.countryName || 'Unknown',
+        clicks: Number(item.clicks),
+        uniqueVisitors: Number(item.uniqueVisitors)
+      })),
+      clicksByRegion: clicksByRegion.map(item => ({
+        country: item.country || 'Unknown',
+        region: item.region || 'Unknown',
+        clicks: Number(item.clicks)
+      })),
+      clicksByCity: clicksByCity.map(item => ({
+        country: item.country || 'Unknown',
+        city: item.city || 'Unknown',
+        clicks: Number(item.clicks)
+      })),
+      clicksByDevice: clicksByDevice.map(item => ({
+        device: item.device || 'Unknown',
+        clicks: Number(item.clicks)
+      })),
+      clicksByBrowser: clicksByBrowser.map(item => ({
+        browser: item.browser || 'Unknown',
+        clicks: Number(item.clicks)
+      })),
+      clicksByOS: clicksByOS.map(item => ({
+        os: item.os || 'Unknown',
+        clicks: Number(item.clicks)
+      })),
+      clicksByReferrer: clicksByReferrer.map(item => ({
+        referrer: item.referrer || 'Direct',
+        clicks: Number(item.clicks)
+      }))
+    });
+        
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    return res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+})
 
 //edit route for targetUrl and shortCode
 
