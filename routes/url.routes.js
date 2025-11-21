@@ -1,7 +1,7 @@
 import express, { urlencoded } from "express";
 import { shortenPostRequestBodySchema, updateUrlRequestBodySchema } from "../validation/request.validation.js";
 import { userTable } from "../models/user.model.js";
-import { eq, and, One, desc } from "drizzle-orm";
+import { eq, and, One, desc, sql, asc } from "drizzle-orm"; 
 import { nanoid, url } from "zod";
 import db from "../db/index.js";
 import { urlsTable } from "../models/url.model.js";
@@ -65,7 +65,7 @@ router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
 
     //verify ownership
     const [url] = await db
-      .select({id: urlsTable.id, userId: userTable.id})
+      .select({id: urlsTable.id, userId: urlsTable.userId})
       .from(urlsTable)
       .where(
         and(
@@ -117,7 +117,7 @@ router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
 
       //clicks by region
 
-      const clickByRegion = await db
+      const clicksByRegion = await db
         .select({
           country: clicksTable.country,
           clicks: sql`count(*)`,
@@ -125,14 +125,14 @@ router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
         })
         .from(clicksTable)
         .where(eq(clicksTable.urlId, urlId))
-        .groupBy(clicksTable.region)
+        .groupBy(clicksTable.country, clicksTable.region) 
         .orderBy(desc(sql`count(*)`))
         .limit(20);
 
       //clicks by city
       //no field currently to track the exact city
       //clicks by device
-      const clickByDevice = await db
+      const clicksByDevice = await db
         .select({
           device: clicksTable.device,
           clicks: sql`count(*)`
@@ -162,7 +162,7 @@ router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
         .from(clicksTable)
         .where(eq(clicksTable.urlId, urlId))
         .groupBy(clicksTable.os)
-        .orderBy(desc(sql``))
+        .orderBy(desc(sql`count(*)`))  // ✅ Sort by count
 
           // Clicks by referrer
     const clicksByReferrer = await db
@@ -193,11 +193,6 @@ router.get('/urls/:id/analytics', ensureAuthenticated, async(req,res) => {
       clicksByRegion: clicksByRegion.map(item => ({
         country: item.country || 'Unknown',
         region: item.region || 'Unknown',
-        clicks: Number(item.clicks)
-      })),
-      clicksByCity: clicksByCity.map(item => ({
-        country: item.country || 'Unknown',
-        city: item.city || 'Unknown',
         clicks: Number(item.clicks)
       })),
       clicksByDevice: clicksByDevice.map(item => ({

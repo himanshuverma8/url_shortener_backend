@@ -25,3 +25,10 @@ export const clicksTable = pgTable('clicks', {
 
 
 
+
+
+
+
+
+
+
